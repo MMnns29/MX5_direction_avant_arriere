@@ -1,0 +1,185 @@
+
+##############################################################
+#	file6.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+
+ Warning (error_data) : The link(1D or 3D) menus require the presence of link(s) (1D or 3D) in the MBS 
+
+
+
+ Warning in the symbolic generator !
+
+
+
+		Maximum simultaneous symbolic expressions :  624
+
+		Maximum number of allocated Kbytes :  29
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Warning during symbolic generation ! ***
+
+
+
+
+##############################################################
+#	file7.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+	Computation of the kinematics........
+
+	Computation of the dynamics....................
+
+		Joints   52  51  50  49  48  47  46  45  44  43
+
+		    -->  42  41  40  39  38  37  36  35  34  33
+
+		    -->  32  31  30  29  28  27  26  25  24  23
+
+		    -->  22  21  20  19  18  17  16  15  14  13
+
+		    -->  12  11  10   9   8   7   6   5   4   3
+
+		    -->   2   1
+
+	Elimination of the superfluous equations.....................
+
+
+		Maximum simultaneous symbolic expressions :  9181
+
+		Maximum number of allocated Kbytes :  430
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Generation symbolique reussie ! ***
+
+
+
+
+##############################################################
+#	file1.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+
+	Elimination of the superfluous equations.....................
+
+
+		Maximum simultaneous symbolic expressions :  5154
+
+		Maximum number of allocated Kbytes :  241
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Generation symbolique reussie ! ***
+
+
+
+
+##############################################################
+#	file5.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+
+	Elimination of the superfluous equations.....................
+
+
+		Maximum simultaneous symbolic expressions :  4912
+
+		Maximum number of allocated Kbytes :  230
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Generation symbolique reussie ! ***
+
+
+
+
+##############################################################
+#	file3.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+
+	Elimination of the superfluous equations.....................
+
+
+		Maximum simultaneous symbolic expressions :  4624
+
+		Maximum number of allocated Kbytes :  216
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Generation symbolique reussie ! ***
+
+
+
+
+##############################################################
+#	file0.gen 30/04/2026 00:24:38    errors
+##############################################################
+git hash : 0e4e6a608eeee06956095d2f2ad315abdb092777
+Warning !
+Unknown option/flag found in generation file : useXML
+
+	Computation of the kinematics........
+
+	Computation of the dynamics.....................
+
+		Joints   52  51  50  49  48  47  46  45  44  43
+
+		    -->  42  41  40  39  38  37  36  35  34  33
+
+		    -->  32  31  30  29  28  27  26  25  24  23
+
+		    -->  22  21  20  19  18  17  16  15  14  13
+
+		    -->  12  11  10   9   8   7   6   5   4   3
+
+		    -->   2   1
+
+	Elimination of the superfluous equations.....................
+
+
+		Maximum simultaneous symbolic expressions :  24861
+
+		Maximum number of allocated Kbytes :  1165
+
+
+	The symbolic equations have been generated 
+	in the directory: /usr/local/robotran/users/LEPL1504/upload/
+
+
+ 		*** Generation symbolique reussie ! ***
+
+
+

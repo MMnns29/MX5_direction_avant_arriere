@@ -1,0 +1,46 @@
+#VRML V2.0 utf8
+
+# --- 1. L'herbe (Plaine verte infinie) ---
+Shape {
+  appearance Appearance {
+    material Material { diffuseColor 0.2 0.5 0.2 } # Vert gazon
+  }
+  # Largeur immense (200m) pour faire un horizon infini
+  geometry Box { size 200.0 0.02 200.0 }
+}
+
+# --- 2. La route (Asphalte gris) ---
+Transform {
+  translation 0 0.02 0 # Légèrement surélevée pour couvrir l'herbe
+  children [
+    Shape {
+      appearance Appearance {
+        material Material { diffuseColor 0.3 0.3 0.3 }
+      }
+      # La route fait 6m de large (standard)
+      geometry Box { size 200.0 0.02 6.0 }
+    }
+  ]
+}
+
+# --- 3. La ligne centrale en pointillés ---
+Transform {
+  translation 0 0.04 0 # Surélevée juste au-dessus de la route
+  children [
+    Shape {
+      appearance Appearance {
+        texture PixelTexture {
+          # Astuce : 2 pixels de large, 1 de haut, 4 canaux (Rouge, Vert, Bleu, Transparence)
+          # Pixel 1 = Blanc opaque (0xFFFFFFFF) | Pixel 2 = Transparent (0x00000000)
+          image 2 1 4 0xFFFFFFFF 0x00000000
+        }
+        textureTransform TextureTransform {
+          # On répète ce motif "Blanc/Vide" 50 fois sur la longueur
+          scale 50 1
+        }
+      }
+      # La ligne fait 20 cm de large
+      geometry Box { size 200.0 0.02 0.2 }
+    }
+  ]
+}
