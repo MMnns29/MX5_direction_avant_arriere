@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 # =============================================================================
 # 1. PARAMÈTRES DE LA SIMULATION
 # =============================================================================
-simulation = "evitement"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
-vitesse_kmh = {"MRU": 36, "acceleration": 7, "freinage": 70, "dos_d_ane": 60, "virage": 50, "evitement": 60}[simulation]
+simulation = "virage"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
+vitesse_kmh = {"MRU": 36, "acceleration": 7, "freinage": 70, "dos_d_ane": 60, "virage": 30, "evitement": 60}[simulation]
 
 print(f"--- Démarrage du projet Mazda MX-5 : Mode {simulation} ---")
 
@@ -30,37 +30,37 @@ um['simulation']                        = simulation
 # --- Paramètres des Pneumatiques et Suspensions ---
 um['FrontTire']                         = {'R': 0.288, 'K': 180000.0}
 um['RearTire']                          = {'R': 0.288, 'K': 180000.0}
-um['FrontSuspension']                   = {'K': 27000.0, 'C': 2200.0, 'C_bar': 2500.0, 'Z0': 0.43}
-um['RearSuspension']                    = {'K': 27000.0, 'C': 1800.0, 'C_bar': 1800.0, 'Z0': 0.43}
+um['FrontSuspension']                   = {'K': 27000.0, 'C': 2200.0, 'C_bar': 15000.0, 'Z0': 0.43}
+um['RearSuspension']                    = {'K': 27000.0, 'C': 1800.0, 'C_bar': 12000.0, 'Z0': 0.43}
 
 # --- Systèmes de Contrôle ---
-um['enable_esp']                        = False  # Active l'ESP (contrôle de stabilité)
-um['enable_abs']                        = False  # Active l'ABS (antiblocage des roues)
-um['enable_transmission_integrale']     = True   # Active la transmission intégrale
+um['enable_esp']                        = True       # Active l'ESP (contrôle de stabilité)
+um['enable_abs']                        = False      # Active l'ABS (antiblocage des roues)
 
 # --- Paramètres de Direction ---
 um['K_steering']                        = 200000.0   # Raideur direction avant (N·m/rad)
 um['D_steering']                        = 10000.0    # Amortissement direction avant (N·m·s/rad)
 um['K_steering_AR']                     = 1e7        # Raideur direction arrière (très élevée)
 um['D_steering_AR']                     = 1e4        # Amortissement direction arrière
-um['enable_4ws']                        = False      # Direction 4-roues (False = 2-roues)
+um['enable_4ws']                        = True       # Direction 4-roues (False = 2-roues)
 um['ratio_4ws']                         = 0.10       # Ratio direction arrière vs avant (4WS)
 
 # --- Paramètres de Couple et Freinage ---
 um['torque_rear']                       = 0.0        # Couple moteur roues arrière (N·m)
 um['torque_front']                      = 0.0        # Couple moteur roues avant (N·m)
 um['force_freinage']                    = 0.0        # Force de freinage (N)
-um['couple_acceleration']                = 150.0      # Couple d'accélération réduit (N·m)
+um['couple_acceleration']               = 2800.0     # Couple d'accélération réduit (N·m)
 
 # --- Paramètres de Virage ---
-um['amplitude_virage']                  = 0.02       # Amplitude du braquage (rad)
+um['amplitude_virage']                  = 0.008      # Déplacement de crémaillère en virage (m) - réduit pour limiter le roulis
+um['couple_virage']                     = 0.0        # Couple pour maintenir la vitesse en virage (N·m)
 
 # --- Paramètres d'Évitement (Pure Pursuit) ---
 um['L_visee']                           = 4.0        # Distance de lookahead (m)
-um['Kp_volant']                         = 0.0015     # Gain proportionnel du volant
-um['q_target_max']                      = 0.025      # Limite de braquage (rad)
-um['X_debut_decalage']                  = 10.0       # Début obstacle
-um['X_fin_decalage']                    = 20.0       # Fin obstacle
+um['Kp_volant']                         = 0.01       # Gain proportionnel du volant
+um['q_target_max']                      = 0.5        # Limite de braquage (rad)
+um['X_debut_decalage']                  = 5.0        # Début obstacle
+um['X_fin_decalage']                    = 15.0       # Fin obstacle
 um['X_debut_retour']                    = 60.0       # Début retour
 um['X_fin_retour']                      = 80.0       # Fin retour
 um['Y_decalage_max']                    = 3.0        # Décalage latéral max (m)
@@ -102,13 +102,18 @@ mbs_part = Robotran.MbsPart(mbs_data)
 mbs_part.set_options(rowperm=1, verbose=0)
 mbs_part.run()
 
-
-
-mbs_data.q[43] = mbs_data.qd[43] = mbs_data.qdd[43] = 0 # joint 43 quand on est en transmission intégrale (Joint de la barre de direction avant) sinon c'est le joint 39
-mbs_data.q[48] = mbs_data.qd[48] = mbs_data.qdd[48] = 0 # joint 48 quand on est en transmission intégrale (Joint de la barre de direction arrière)
-
-
-
+# Forcer l'alignement de la direction après partitionnement
+try:
+    jid_dir = mbs_data.joint_id["T2_barre_direction"]
+    jid_dir_ar = mbs_data.joint_id["T2_barre_direction_AR"]
+    mbs_data.q[jid_dir] = 0.0
+    mbs_data.q[jid_dir_ar] = 0.0
+    mbs_data.qd[jid_dir] = 0.0
+    mbs_data.qd[jid_dir_ar] = 0.0
+    mbs_data.qdd[jid_dir] = 0.0
+    mbs_data.qdd[jid_dir_ar] = 0.0
+except KeyError:
+    pass
 
 # =============================================================================
 # 4. PHASE DE TASSEMENT (Remplace MbsEquil)
@@ -119,6 +124,8 @@ mbs_dirdyn = Robotran.MbsDirdyn(mbs_data)
 print(">> Phase de tassement (2 secondes)...")
 mbs_dirdyn.set_options(dt0=1e-2, tf=2.0, save2file=0) 
 mbs_dirdyn.run()
+mbs_data.q[43] = mbs_data.qd[43] = mbs_data.qdd[43] = 0 # joint 43 quand on est en transmission intégrale (Joint de la barre de direction avant) sinon c'est le joint 39
+mbs_data.q[48] = mbs_data.qd[48] = mbs_data.qdd[48] = 0 # joint 48 quand on est en transmission intégrale (Joint de la barre de direction arrière)
 
 # =============================================================================
 # 5. INJECTION DES VITESSES ET SIMULATION DYNAMIQUE

@@ -3,7 +3,7 @@ import numpy as np
 
 def user_JointForces(mbs_data, tsim):
     
-    # TABLEAU DE BORD
+    # TABLEAU DE BORD : Donnée du vehicule
     enable_esp = mbs_data.user_model['enable_esp'] 
     enable_abs = mbs_data.user_model['enable_abs']   
 
@@ -11,6 +11,8 @@ def user_JointForces(mbs_data, tsim):
     um = mbs_data.user_model
     mode = um.get('simulation', 'MRU')
     jid_X = mbs_data.joint_id["T1_chassis"]
+    jid_Y = mbs_data.joint_id["T2_chassis"]
+    jid_Yaw = mbs_data.joint_id["R3_chassis"]
     v_veh = mbs_data.qd[jid_X]
     
     jid_dir = mbs_data.joint_id["T2_barre_direction"]
@@ -29,7 +31,6 @@ def user_JointForces(mbs_data, tsim):
     force_freinage = um['force_freinage']
     tf1 = um['tf1']
     tf2 = um['tf2']
-    enable_4ws = um['enable_4ws']
     K_steering = um['K_steering']
     D_steering = um['D_steering']
     K_steering_AR = um['K_steering_AR']
@@ -84,21 +85,25 @@ def user_JointForces(mbs_data, tsim):
     # =========================================================
     if mode == "virage":
         amplitude = um['amplitude_virage']
-        if 2.0 <= tsim < 4.0:
-            q_target = amplitude * np.sin(np.pi * (tsim - 2.0) / 2.0)
-        elif 4.0 <= tsim < 6.0:
-            q_target = -amplitude * np.sin(np.pi * (tsim - 4.0) / 2.0)
-            
+        if 1.0 <= tsim < 3.0:
+            phase = (tsim - 1.0) / 3.0
+            # Virage gauche continu
+            q_target = amplitude * (1.0 - np.cos(np.pi * phase)) / 2.0
+        elif 3.0 <= tsim < 3.5:
+            # Transition douce vers la ligne droite
+            phase = (tsim - 3.0) / 0.5
+            q_target = amplitude * (1.0 - phase)
+        else:
+            q_target = 0.0
+
+        # Maintenir la vitesse en virage
+        torque_rear = um['couple_virage']
 
     # =========================================================
     # SCÉNARIO : ÉVITEMENT (PILOTE "LOOK-AHEAD" / PURE PURSUIT)
     # =========================================================
     if mode == "evitement":
-        # 1. On récupère la position et l'angle du châssis
-        jid_X = mbs_data.joint_id["T1_chassis"] 
-        jid_Y = mbs_data.joint_id["T2_chassis"] 
-        jid_Yaw = mbs_data.joint_id["R3_chassis"] 
-        
+        # Récupération des positions et angles du châssis
         X_actuel = mbs_data.q[jid_X]
         Y_actuel = mbs_data.q[jid_Y]
         Yaw_actuel = mbs_data.q[jid_Yaw]
@@ -138,8 +143,8 @@ def user_JointForces(mbs_data, tsim):
         erreur_visee = Y_cible_visee - Y_futur_voiture
         
         Kp_volant = um['Kp_volant']  # Force du coup de volant
-        raw_q_target = Kp_volant * erreur_visee
-        q_target = np.clip(raw_q_target, -um['q_target_max'], um['q_target_max'])  # Butée de sécurité
+        raw_q_target = Kp_volant * erreur_visee # raw_q_target est la consigne de direction brute, sans limitation
+        q_target = np.clip(raw_q_target, -um['q_target_max'], um['q_target_max'])  # Butée de sécurité, on ne veut pas que le pilote braque à fond d'un coup !
 
         # 3. ON SAUVEGARDE L'ERREUR DE LACET POUR L'ESP (Lui, il veut empêcher de tourner sur soi-même !)
         um['erreur_Yaw'] = 0.0 - Yaw_actuel 
@@ -147,14 +152,12 @@ def user_JointForces(mbs_data, tsim):
         # --- GESTION DE LA PÉDALE DE FREIN (Évitement d'urgence) ---
         if tf1 <= tsim <= tf2 and not um['is_stopped']:
             torque_front = force_freinage * um['frein_ratio_front']
-            torque_rear  = force_freinage * um['frein_ratio_rear']
-            
-            
-      
+            torque_rear  = force_freinage * um['frein_ratio_rear']  
+    
     # =========================================================
     # SCÉNARIO : ACCELERATION OU FREINAGE  
     # =========================================================
-    if mode == "acceleration" and tsim > 1.0:
+    if mode == "acceleration" and tsim > 1.0 and mbs_data.process != 2:  # On attend 1 seconde pour être sûr que la simulation a démarré, et on vérifie que le processus n'est pas déjà arrêté (sécurité anti-burnout)
         # RÉDUCTION DU COUPLE (Anti-Burnout)
         torque_rear = um['couple_acceleration']
         
@@ -176,12 +179,13 @@ def user_JointForces(mbs_data, tsim):
     # On met un K gigantesque (1e7 = 10 millions) pour être sûr que la route 
     # ne puisse JAMAIS arracher la direction arrière.
     
-    if um["enable_transmission_integrale"] :
-        q_target_AR = ratio_4ws * -q_target 
+    if um['enable_4ws']:
+        q_target_AR = ratio_4ws * q_target 
     else:
         q_target_AR = 0.0  # La direction arrière reste centrée, elle ne suit pas la direction avant 
-        
+
     mbs_data.Qq[jid_dir_ar] = -K_steering_AR * (mbs_data.q[jid_dir_ar] - q_target_AR) - D_steering_AR * mbs_data.qd[jid_dir_ar]
+    
     # =========================================================
     # 2. APPLICATION DES COUPLES, VRAI ESP & SYSTÈME ABS
     # =========================================================
@@ -253,13 +257,13 @@ def user_JointForces(mbs_data, tsim):
             mbs_data.Qq[jid] = couple_base
             
     # === TRACEUR RADAR ESP ===
-    if enable_esp and tsim > 1.0 and tsim % 0.1 < 0.001 and abs(um['erreur_Yaw']) > 0.01:
+    if enable_esp and tsim > 1.0 and tsim % 0.1 < 0.001 and 'erreur_yaw' in um and abs(um['erreur_Yaw']) > 0.01:
         print(f"t={tsim:.1f}s | Dérapage: {np.degrees(um['erreur_Yaw']):.1f}° | Frein AR_G: {frein_applique_G:.0f} Nm | Frein AR_D: {frein_applique_D:.0f} Nm")
     # =========================================================
     # === DEBUG : VÉRIFICATION DE LA DIRECTION (4WS & ACKERMAN) ===
     # =========================================================
-    # On affiche les valeurs toutes les 0.2 secondes, uniquement quand on tourne
-    if tsim > 0.2 and tsim % 0.2 < 0.001 and abs(q_target) > 0.0001:
+    # On affiche les valeurs toutes les 0.2 secondes
+    if tsim > 0.6 and tsim % 0.2 < 0.001 and mbs_data.process != 2:
         
         # 1. Lecture des crémaillères (Conversion en millimètres pour que ça soit lisible)
         crem_AV = mbs_data.q[jid_dir] * 1000.0
@@ -294,6 +298,10 @@ def user_JointForces(mbs_data, tsim):
             print(f"Différence (G-D)   : {ecart_ackerman:+.2f}°")
         except KeyError:
             print("Info: Noms des joints de pivot (R3) introuvables pour l'Ackerman.")
+
+        # position du vehicule pour le debug
+        print (f"Position (m)       : X = {mbs_data.q[jid_X]:.2f} | Y = {mbs_data.q[jid_Y]:.2f} | Yaw = {np.degrees(mbs_data.q[jid_Yaw]):.1f}°"
+               f" | Vitesse = {v_veh:.2f} m/s")
         print("-" * 35)
         
 

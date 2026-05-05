@@ -4,9 +4,25 @@ from tgc_py import tgc_car_kine_wheel, tgc_bakker_contact
 from MBsysPy import matrix_vector_product
 
 def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
+    """
+    Cette fonction calcule les forces et moments extérieurs appliqués aux roues du véhicule en fonction de la cinématique du contact sol-roue et des paramètres du pneu.
+    Les étapes principales sont les suivantes :
+    PxF : Position du point d'application de la force (en coordonnées globales)
+    RxF : Orientation du point d'application de la force (matrice de rotation)
+    VxF : Vitesse du point d'application de la force
+    OMxF : Vitesse angulaire du point d'application de la force
+    AxF : Accélération du point d'application de la force
+    OMPxF : Accélération angulaire du point d'application de la force
+    mbs_data : Structure de données de Robotran contenant les paramètres du modèle et les variables d'état
+    tsim : Temps de simulation actuel
+    ixF : Indice de la force extérieure (correspondant à une roue spécifique)
+    """
+
     Fx = Fy = Fz = Mx = My = Mz = 0.0
-    idpt = mbs_data.xfidpt[ixF]
+    idpt = mbs_data.xfidpt[ixF]   
     dxF = mbs_data.dpt[1:, idpt]
+    dxF_tgc = np.zeros(4)  # Initialisation du vecteur de déplacement pour tgc_car_kine_wheel
+    dxF_tgc[1:4] = dxF  # Copie des composantes de déplacement dans le format attendu par tgc_car_kine_wheel
 
     wheel_names = ['F_pneu_av_g', 'F_pneu_av_d', 'F_pneu_ar_g', 'F_pneu_ar_d']
     wheel_ids = [mbs_data.extforce_id.get(n) for n in wheel_names]
@@ -24,10 +40,6 @@ def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
         pen, rz, angslip, angcamb, slip, Pct, Vmct, Rt_ground, dxF_tgc = \
             tgc_car_kine_wheel(PxF, RxF, VxF, OMxF, R_tire)
 
-        # Correction d'indice Robotran (Point d'application de la force)
-        dxF_tgc[0:3] = dxF_tgc[1:4]
-        dxF = dxF_tgc[0:3]
-
         # 3. CALCUL DES FORCES DYNAMIQUES
         if mbs_data.process == 3: # Simulation dynamique
             T_F = np.zeros(4)
@@ -35,7 +47,7 @@ def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
 
             if pen > 0:
                 # Force normale (Sécurité anti-crash Bakker)
-                T_F[3] = max(0.1, K_tire * pen)
+                T_F[3] = max(0.12, K_tire * pen)
 
                 # APPEL BAKKER : Calcule Fx, Fy et Mz
                 # IMPORTANT : On ne force plus T_F[2] à 0 pour permettre le virage !
@@ -55,7 +67,7 @@ def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
 
     # Remplissage du vecteur de sortie Swr
     Swr = mbs_data.SWr[ixF]
-    Swr[1:] = [Fx, Fy, Fz, Mx, My, Mz, dxF[0], dxF[1], dxF[2]]
+    Swr[1:] = [Fx, Fy, Fz, Mx, My, Mz, dxF_tgc[1], dxF_tgc[2], dxF_tgc[3]]
     # =========================================================
     # SAUVEGARDE DES 3 COMPOSANTES DE LA FORCE DE CONTACT
     # (ixF correspond au numéro de la roue : 1, 2, 3 ou 4)
