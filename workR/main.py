@@ -23,13 +23,72 @@ mbs_data = Robotran.MbsData(mbs_file)
 # 2. INITIALISATION DU USER MODEL
 # =============================================================================
 um = {}
-um['simulation']      = simulation
-um['FrontTire']       = {'R': 0.288, 'K': 180000.0}
-um['RearTire']        = {'R': 0.288, 'K': 180000.0}
-um['FrontSuspension'] = {'K': 27000.0, 'C': 2200.0, 'C_bar': 2500.0, 'Z0': 0.43}
-um['RearSuspension']  = {'K': 27000.0, 'C': 1800.0, 'C_bar': 1800.0, 'Z0': 0.43}
-um['enable_esp']     = False  # Active l'ESP (contrôle de stabilité)
-um['enable_abs']     = False  # Active l'ABS (antiblocage des roues)
+
+# --- Simulation ---
+um['simulation']                        = simulation
+
+# --- Paramètres des Pneumatiques et Suspensions ---
+um['FrontTire']                         = {'R': 0.288, 'K': 180000.0}
+um['RearTire']                          = {'R': 0.288, 'K': 180000.0}
+um['FrontSuspension']                   = {'K': 27000.0, 'C': 2200.0, 'C_bar': 2500.0, 'Z0': 0.43}
+um['RearSuspension']                    = {'K': 27000.0, 'C': 1800.0, 'C_bar': 1800.0, 'Z0': 0.43}
+
+# --- Systèmes de Contrôle ---
+um['enable_esp']                        = False  # Active l'ESP (contrôle de stabilité)
+um['enable_abs']                        = False  # Active l'ABS (antiblocage des roues)
+um['enable_transmission_integrale']     = True   # Active la transmission intégrale
+
+# --- Paramètres de Direction ---
+um['K_steering']                        = 200000.0   # Raideur direction avant (N·m/rad)
+um['D_steering']                        = 10000.0    # Amortissement direction avant (N·m·s/rad)
+um['K_steering_AR']                     = 1e7        # Raideur direction arrière (très élevée)
+um['D_steering_AR']                     = 1e4        # Amortissement direction arrière
+um['enable_4ws']                        = False      # Direction 4-roues (False = 2-roues)
+um['ratio_4ws']                         = 0.10       # Ratio direction arrière vs avant (4WS)
+
+# --- Paramètres de Couple et Freinage ---
+um['torque_rear']                       = 0.0        # Couple moteur roues arrière (N·m)
+um['torque_front']                      = 0.0        # Couple moteur roues avant (N·m)
+um['force_freinage']                    = 0.0        # Force de freinage (N)
+um['couple_acceleration']                = 150.0      # Couple d'accélération réduit (N·m)
+
+# --- Paramètres de Virage ---
+um['amplitude_virage']                  = 0.02       # Amplitude du braquage (rad)
+
+# --- Paramètres d'Évitement (Pure Pursuit) ---
+um['L_visee']                           = 4.0        # Distance de lookahead (m)
+um['Kp_volant']                         = 0.0015     # Gain proportionnel du volant
+um['q_target_max']                      = 0.025      # Limite de braquage (rad)
+um['X_debut_decalage']                  = 10.0       # Début obstacle
+um['X_fin_decalage']                    = 20.0       # Fin obstacle
+um['X_debut_retour']                    = 60.0       # Début retour
+um['X_fin_retour']                      = 80.0       # Fin retour
+um['Y_decalage_max']                    = 3.0        # Décalage latéral max (m)
+
+# --- Paramètres de Temps (Freinage d'urgence) ---
+um['tf1']                               = 1.0        # Début freinage d'urgence (s)
+um['tf2']                               = 3.0        # Fin freinage d'urgence (s)
+
+# --- Paramètres ESP (Contrôle de Stabilité) ---
+um['K_esp_base']                        = 50000.0    # Gain de base ESP (N·m)
+um['v_esp_ref']                         = 16.67      # Vitesse de référence ESP (m/s = 60 km/h)
+um['K_esp_max']                         = 100000.0   # Gain ESP maximal saturé (N·m)
+um['v_esp_min']                         = 2.7        # Vitesse minimale pour ESP (m/s)
+
+# --- Paramètres ABS (Antiblocage des Roues) ---
+um['abs_slip_threshold']                = 0.80       # Seuil d'activation ABS (80% vitesse)
+um['abs_recovery_threshold']            = 0.95       # Seuil de récupération ABS (95% vitesse)
+um['v_abs_min']                         = 2.0        # Vitesse minimale pour ABS (m/s)
+
+# --- Freinage ESP/ABS ---
+um['frein_esp_max']                     = -4000.0    # Force max des freins (N·m)
+um['frein_ratio_front']                 = 0.60       # Répartition avant freinage (%)
+um['frein_ratio_rear']                  = 0.40       # Répartition arrière freinage (%)
+
+# --- Vitesses de Sécurité ---
+um['v_min_started']                     = 5.0        # Vitesse pour confirmer départ (m/s)
+um['v_max_stopped']                     = 2.0        # Vitesse pour confirmer arrêt (m/s)
+
 mbs_data.user_model = um
 
 # Configuration initiale (Hauteur pour garantir le contact pneu/sol)

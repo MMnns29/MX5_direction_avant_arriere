@@ -136,8 +136,8 @@
         <graphics>
           <x2D>
             <position>
-              <x>916.0</x>
-              <y>890.0</y>
+              <x>921.0</x>
+              <y>892.0</y>
             </position>
           </x2D>
           <x3D>
@@ -147,8 +147,8 @@
         </graphics>
       </joint>
       <joint>
-        <jointname>R1_chassis</jointname>
-        <type>R1</type>
+        <jointname>R3_chassis</jointname>
+        <type>R3</type>
         <nature>independent</nature>
         <graphics>
           <x2D>
@@ -181,8 +181,8 @@
         </graphics>
       </joint>
       <joint>
-        <jointname>R3_chassis</jointname>
-        <type>R3</type>
+        <jointname>R1_chassis</jointname>
+        <type>R1</type>
         <nature>independent</nature>
         <graphics>
           <x2D>
@@ -4118,7 +4118,7 @@
         <pointname>Bielle_dir_fusee</pointname>
         <coordinates>
           <x>-0.06</x>
-          <y>0.4</y>
+          <y>0.398</y>
           <z>0.0</z>
         </coordinates>
         <graphics>
@@ -4256,7 +4256,7 @@
         <pointname>Bielle_dir_fusee</pointname>
         <coordinates>
           <x>-0.06</x>
-          <y>-0.4</y>
+          <y>-0.398</y>
           <z>0.0</z>
         </coordinates>
         <graphics>
@@ -4525,7 +4525,7 @@
         <pointname>Bielle_dir_fusee</pointname>
         <coordinates>
           <x>0.06</x>
-          <y>-0.4</y>
+          <y>-0.402</y>
           <z>0.0</z>
         </coordinates>
         <graphics>
@@ -4663,7 +4663,7 @@
         <pointname>Bielle_dir_fusee</pointname>
         <coordinates>
           <x>0.06</x>
-          <y>0.4</y>
+          <y>0.402</y>
           <z>0.0</z>
         </coordinates>
         <graphics>

@@ -22,13 +22,19 @@ def user_JointForces(mbs_data, tsim):
     except KeyError:
         wheels_front = []
 
+    # Récupération des paramètres depuis um
     q_target = 0.0
-    torque_rear = 0.0
-    torque_front = 0.0
-    force_freinage = 0.0 
-    tf1 = 1.0
-    tf2 = 3.0
-    enable_4ws = False  # Mettre à False pour tes simulations de comparaison
+    torque_rear = um['torque_rear']
+    torque_front = um['torque_front']
+    force_freinage = um['force_freinage']
+    tf1 = um['tf1']
+    tf2 = um['tf2']
+    enable_4ws = um['enable_4ws']
+    K_steering = um['K_steering']
+    D_steering = um['D_steering']
+    K_steering_AR = um['K_steering_AR']
+    D_steering_AR = um['D_steering_AR']
+    ratio_4ws = um['ratio_4ws']
     
     # =========================================================
     #  MÉMOIRE DU PILOTE
@@ -40,11 +46,11 @@ def user_JointForces(mbs_data, tsim):
         um['is_stopped'] = False  
 
     # Étape 1 : On confirme que la vraie simulation a commencé
-    if v_veh > 5.0:
+    if v_veh > um['v_min_started']:
         um['has_rolled'] = True
 
-    # Étape 2 : Si la voiture est passée sous les 2 m/s, on coupe tout 
-    if um['has_rolled'] and v_veh < 2.0:
+    # Étape 2 : Si la voiture est passée sous les X m/s, on coupe tout 
+    if um['has_rolled'] and v_veh < um['v_max_stopped']:
         um['is_stopped'] = True
         
         # LA SOLUTION : On force Robotran à arrêter la simulation proprement
@@ -65,9 +71,9 @@ def user_JointForces(mbs_data, tsim):
     jid_wheel_ar_g = mbs_data.joint_id["R2_Roue_AR_G"]
     omega_roue = mbs_data.qd[jid_wheel_ar_g]
     
-    # Règle : Si la voiture roule à plus de 5 m/s MAIS que la roue 
+    # Règle : Si la voiture roule à plus de X m/s MAIS que la roue 
     # tourne à moins de 2 rad/s (elle est quasi figée), on glisse !
-    if v_veh > 5.0 and abs(omega_roue) < 2.0:
+    if v_veh > um['v_min_started'] and abs(omega_roue) < 2.0:
         if not um['warning_printed']:
             print(f"\n⚠ DANGER : Blocage des roues arrière détecté à t = {tsim:.2f}s !")
             um['warning_printed'] = True
@@ -77,10 +83,11 @@ def user_JointForces(mbs_data, tsim):
     # SCÉNARIO : VIRAGE 
     # =========================================================
     if mode == "virage":
+        amplitude = um['amplitude_virage']
         if 2.0 <= tsim < 4.0:
-            q_target = 0.02 * np.sin(np.pi * (tsim - 2.0) / 2.0)
+            q_target = amplitude * np.sin(np.pi * (tsim - 2.0) / 2.0)
         elif 4.0 <= tsim < 6.0:
-            q_target = -0.02 * np.sin(np.pi * (tsim - 4.0) / 2.0)
+            q_target = -amplitude * np.sin(np.pi * (tsim - 4.0) / 2.0)
             
 
     # =========================================================
@@ -96,50 +103,51 @@ def user_JointForces(mbs_data, tsim):
         Y_actuel = mbs_data.q[jid_Y]
         Yaw_actuel = mbs_data.q[jid_Yaw]
 
-        # 2. Chicane 
-        X_debut_decalage = 10.0  
-        X_fin_decalage   = 25.0  
-        X_debut_retour   = 70.0  
-        X_fin_retour     = 100.0 
+        # 2. Chicane (récupération depuis um)
+        X_debut_decalage = um['X_debut_decalage']
+        X_fin_decalage = um['X_fin_decalage']
+        X_debut_retour = um['X_debut_retour']
+        X_fin_retour = um['X_fin_retour']
+        Y_decalage_max = um['Y_decalage_max']
         
         # -----------------------------------------------------
         # LE CERVEAU DU PILOTE (L'anticipation Visuelle)
         # -----------------------------------------------------
-        L_visee = 4.0 # Le pilote regarde 8 mètres devant la voiture
+        L_visee = um['L_visee']  # Le pilote regarde X mètres devant la voiture
         X_visee = X_actuel + L_visee
 
-        # A. Où sera la ligne blanche cible dans 8 mètres ?
+        # A. Où sera la ligne blanche cible dans L_visee mètres ?
         if X_visee < X_debut_decalage:
             Y_cible_visee = 0.0
         elif X_debut_decalage <= X_visee < X_fin_decalage:
             progression = (X_visee - X_debut_decalage) / (X_fin_decalage - X_debut_decalage)
-            Y_cible_visee = 3.0 * (0.5 - 0.5 * np.cos(np.pi * progression))
+            Y_cible_visee = Y_decalage_max * (0.5 - 0.5 * np.cos(np.pi * progression))
         elif X_fin_decalage <= X_visee < X_debut_retour:
-            Y_cible_visee = 3.0  
+            Y_cible_visee = Y_decalage_max  
         elif X_debut_retour <= X_visee < X_fin_retour:
             progression = (X_visee - X_debut_retour) / (X_fin_retour - X_debut_retour)
-            Y_cible_visee = 3.0 * (0.5 + 0.5 * np.cos(np.pi * progression))
+            Y_cible_visee = Y_decalage_max * (0.5 + 0.5 * np.cos(np.pi * progression))
         else:
             Y_cible_visee = 0.0
 
-        # B. Où sera la voiture dans 8 mètres si elle garde son angle de braquage actuel ?
+        # B. Où sera la voiture dans L_visee mètres si elle garde son angle de braquage actuel ?
         # (Formule géométrique simple : Y_actuel + Distance * Angle_Lacet)
         Y_futur_voiture = Y_actuel + (L_visee * Yaw_actuel)
 
         # C. Le coup de volant est proportionnel à l'écart entre ces deux futurs
         erreur_visee = Y_cible_visee - Y_futur_voiture
         
-        Kp_volant = 0.0015 # Force du coup de volant
+        Kp_volant = um['Kp_volant']  # Force du coup de volant
         raw_q_target = Kp_volant * erreur_visee
-        q_target = np.clip(raw_q_target, -0.025, 0.025) # Butée de sécurité
+        q_target = np.clip(raw_q_target, -um['q_target_max'], um['q_target_max'])  # Butée de sécurité
 
         # 3. ON SAUVEGARDE L'ERREUR DE LACET POUR L'ESP (Lui, il veut empêcher de tourner sur soi-même !)
         um['erreur_Yaw'] = 0.0 - Yaw_actuel 
 
         # --- GESTION DE LA PÉDALE DE FREIN (Évitement d'urgence) ---
         if tf1 <= tsim <= tf2 and not um['is_stopped']:
-            torque_front = force_freinage * 0.60 
-            torque_rear  = force_freinage * 0.40
+            torque_front = force_freinage * um['frein_ratio_front']
+            torque_rear  = force_freinage * um['frein_ratio_rear']
             
             
       
@@ -147,20 +155,19 @@ def user_JointForces(mbs_data, tsim):
     # SCÉNARIO : ACCELERATION OU FREINAGE  
     # =========================================================
     if mode == "acceleration" and tsim > 1.0:
-        # RÉDUCTION DU COUPLE (Anti-Burnout) : 150 Nm au lieu de 600 Nm
-        torque_rear = 150.0  
+        # RÉDUCTION DU COUPLE (Anti-Burnout)
+        torque_rear = um['couple_acceleration']
         
     elif mode == "freinage" and tsim > 1.0:
         # Même logique de sécurité que pour l'évitement
         if not um['is_stopped']: 
-            torque_front = force_freinage * 0.60
-            torque_rear  = force_freinage * 0.40
+            torque_front = force_freinage * um['frein_ratio_front']
+            torque_rear  = force_freinage * um['frein_ratio_rear']
 
     # =========================================================
     # 1. APPLICATION DU CONTRÔLE DE DIRECTION (AV + AR)
     # =========================================================
     # Muscles humains / Direction assistée
-    K_steering, D_steering = 200000.0, 10000.0
     
     # --- DIRECTION AVANT (Inchangée) ---
     mbs_data.Qq[jid_dir] = -K_steering * (mbs_data.q[jid_dir] - q_target) - D_steering * mbs_data.qd[jid_dir]
@@ -168,15 +175,14 @@ def user_JointForces(mbs_data, tsim):
     # --- DIRECTION ARRIÈRE (Le point de soudure en titane) ---
     # On met un K gigantesque (1e7 = 10 millions) pour être sûr que la route 
     # ne puisse JAMAIS arracher la direction arrière.
-    K_steering_AR, D_steering_AR = 1e7, 1e4
     
-    if enable_4ws and mode == "evitement":
-        q_target_AR = 0.10 * q_target 
+    if um["enable_transmission_integrale"] :
+        q_target_AR = ratio_4ws * -q_target 
     else:
-        q_target_AR = 0.0 
+        q_target_AR = 0.0  # La direction arrière reste centrée, elle ne suit pas la direction avant 
         
     mbs_data.Qq[jid_dir_ar] = -K_steering_AR * (mbs_data.q[jid_dir_ar] - q_target_AR) - D_steering_AR * mbs_data.qd[jid_dir_ar]
-# =========================================================
+    # =========================================================
     # 2. APPLICATION DES COUPLES, VRAI ESP & SYSTÈME ABS
     # =========================================================
 
@@ -191,16 +197,16 @@ def user_JointForces(mbs_data, tsim):
     if enable_esp and 'erreur_Yaw' in um:
         
         # Point de référence
-        v_ref = 16.67     # 60 km/h en m/s
-        K_base = 50000.0  # Gain fort
+        v_ref = um['v_esp_ref']
+        K_base = um['K_esp_base']
         
         # Sécurité basse vitesse
-        if v_veh < 2.7:
+        if v_veh < um['v_esp_min']:
             K_esp = 0.0
         else:
             # Évolution au carré de la vitesse
             K_esp = K_base * ((v_veh / v_ref) ** 2)
-            K_esp = min(K_esp, 100000.0) # Saturation
+            K_esp = min(K_esp, um['K_esp_max'])  # Saturation
             
         delta_esp = K_esp * um['erreur_Yaw']
 
@@ -225,21 +231,20 @@ def user_JointForces(mbs_data, tsim):
             couple_base = min(0.0, couple_base)
             
             # Sécurité 2 : L'ESP ne peut pas dépasser la force maximale des freins
-            # /!\ ON MONTE LA LIMITE À -4000 Nm POUR QUE L'ESP PUISSE SAUVER LA VOITURE /!\
-            couple_base = max(-4000.0, couple_base)
+            couple_base = max(um['frein_esp_max'], couple_base)
 
             # Mémorisation pour le radar
             if jid == mbs_data.joint_id["R2_Roue_AR_G"]: frein_applique_G = couple_base
             if jid == mbs_data.joint_id["R2_Roue_AR_D"]: frein_applique_D = couple_base
         
         # --- LOGIQUE ABS (Le boss final qui a le dernier mot) ---
-        if enable_abs and couple_base < 0 and um['has_rolled'] and v_veh > 2.0:
+        if enable_abs and couple_base < 0 and um['has_rolled'] and v_veh > um['v_abs_min']:
             omega = mbs_data.qd[jid]
             v_ideale = v_veh / R_wheel
             
-            if not um['abs_state'][jid] and abs(omega) < (v_ideale * 0.80):
+            if not um['abs_state'][jid] and abs(omega) < (v_ideale * um['abs_slip_threshold']):
                 um['abs_state'][jid] = True  
-            elif um['abs_state'][jid] and abs(omega) > (v_ideale * 0.95):
+            elif um['abs_state'][jid] and abs(omega) > (v_ideale * um['abs_recovery_threshold']):
                 um['abs_state'][jid] = False 
             
             # L'ABS coupe la pression de freinage (même celle demandée par l'ESP) si ça glisse
@@ -254,7 +259,7 @@ def user_JointForces(mbs_data, tsim):
     # === DEBUG : VÉRIFICATION DE LA DIRECTION (4WS & ACKERMAN) ===
     # =========================================================
     # On affiche les valeurs toutes les 0.2 secondes, uniquement quand on tourne
-    if tsim > 1.0 and tsim % 0.2 < 0.001 and abs(q_target) > 0.0001:
+    if tsim > 0.2 and tsim % 0.2 < 0.001 and abs(q_target) > 0.0001:
         
         # 1. Lecture des crémaillères (Conversion en millimètres pour que ça soit lisible)
         crem_AV = mbs_data.q[jid_dir] * 1000.0
@@ -276,8 +281,8 @@ def user_JointForces(mbs_data, tsim):
         # Robotran calcule la vraie géométrie 3D des biellettes. 
         # Remplacer les noms entre guillemets par ceux de tes vrais pivots si Robotran râle.
         try:
-            jid_pivot_av_g = mbs_data.joint_id["R3_Roue_AV_G"] # Ou R3_Pivot_AV_G selon ton .mbs
-            jid_pivot_av_d = mbs_data.joint_id["R3_Roue_AV_D"]
+            jid_pivot_av_g = mbs_data.joint_id["R3_fusee_AV_G"] 
+            jid_pivot_av_d = mbs_data.joint_id["R3_fusee_AV_D"] 
             
             angle_G = np.degrees(mbs_data.q[jid_pivot_av_g])
             angle_D = np.degrees(mbs_data.q[jid_pivot_av_d])
