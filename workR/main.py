@@ -16,7 +16,7 @@ print(f"--- Démarrage du projet Mazda MX-5 : Mode {simulation} ---")
 
 # Chargement du projet
 work_dir = os.path.dirname(os.path.abspath(__file__))
-mbs_file = os.path.normpath(os.path.join(work_dir, "..", "dataR", "Robotran_Mazda_MX5_transmition_integrale.mbs")) # Modifie le nom du .mbs si tu as un modèle différent ! (Attention à la transmission intégrale ou simple)
+mbs_file = os.path.normpath(os.path.join(work_dir, "..", "dataR", "Robotran_Mazda_MX5_transmition_integrale.mbs")) 
 mbs_data = Robotran.MbsData(mbs_file)
 
 # =============================================================================
@@ -28,8 +28,8 @@ um['FrontTire']       = {'R': 0.288, 'K': 180000.0}
 um['RearTire']        = {'R': 0.288, 'K': 180000.0}
 um['FrontSuspension'] = {'K': 27000.0, 'C': 2200.0, 'C_bar': 2500.0, 'Z0': 0.43}
 um['RearSuspension']  = {'K': 27000.0, 'C': 1800.0, 'C_bar': 1800.0, 'Z0': 0.43}
-um['enable_esp']     = True  # Active ou désactive l'ESP (contrôle de stabilité)
-um['enable_abs']     = True  # Active ou désactive l'ABS (antiblocage des roues)
+um['enable_esp']     = False  # Active l'ESP (contrôle de stabilité)
+um['enable_abs']     = False  # Active l'ABS (antiblocage des roues)
 mbs_data.user_model = um
 
 # Configuration initiale (Hauteur pour garantir le contact pneu/sol)
@@ -88,7 +88,7 @@ mbs_data.qd[2] = 0.0         # Tuer le glissement latéral parasite (Y)
 mbs_data.qd[6] = 0.0         # Tuer la rotation parasite (Yaw)
 
 print(f">> Lancement de la simulation ({simulation})...")
-mbs_dirdyn.set_options(dt0=1e-3, tf=10.0, save2file=1)
+mbs_dirdyn.set_options(dt0=1e-3, tf=6.0, save2file=1)
 
 # =============================================================================
 # 5. GESTION DU CRASH-TEST (Anti-arrêt de Python)
