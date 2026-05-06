@@ -2,6 +2,22 @@
 
 import numpy as np
 
+import numpy as np
+
+
+def pedal(t, valeur=1, t_montee=2.0):
+    """
+    Renvoie une valeur progressive entre 0 et valeur.
+    
+    t : temps actuel de simulation [s]
+    valeur_min : valeur finale atteinte
+    t_montee : temps nécessaire pour atteindre valeur_max [s]
+    """
+    # Courbe douce type humain : départ doux, montée progressive, arrivée douce
+    facteur = np.exp(t-t_montee) if t<t_montee else 1
+
+    return valeur * facteur
+
 def user_JointForces(mbs_data, tsim):
     """
     This function defines the user function for the joint forces. It is called by the main program at each time step.
@@ -44,18 +60,39 @@ def user_JointForces(mbs_data, tsim):
     K_steering_AR = um['K_steering_AR']
     D_steering_AR = um['D_steering_AR']
 
-    # 
+    # couples du pilote
     torque_rear = 0.0   # Couple moteur roues arrière (N·m)
     torque_front = 0.0  # Couple moteur roues avant (N·m)
 
+    # Visée du pilote 
+    q_target = 0.0  # Angle de direction cible (en radians)
 
 
     # =============================================================================================
     # ------------------------------------- Memoire du pilote -------------------------------------
     # =============================================================================================
 
-    # Visée du pilote 
-    q_target = 0.0  # Angle de direction cible (en radians)
+
+    if 'has_rolled' not in um:
+        um['has_rolled'] = False  
+    if 'is_stopped' not in um:
+        um['is_stopped'] = False  
+
+    # Étape 1 : On confirme que la vraie simulation a commencé
+    if v_veh > um['v_min_started']:
+        um['has_rolled'] = True
+
+    # Étape 2 : Si la voiture est passée sous les X m/s, on coupe tout 
+    if um['has_rolled'] and v_veh < um['v_max_stopped']:
+        um['is_stopped'] = True
+        
+        # LA SOLUTION : On force Robotran à arrêter la simulation proprement
+        mbs_data.flag_stop = 1 
+        
+        # Petit message pour prévenir dans la console
+        if 'stop_msg_printed' not in um:
+            print(f"\n Véhicule arrêté à t = {tsim:.2f}s. Fin de la simulation ordonnée. Has_rolled = {um['has_rolled']}, Is_stopped = {um['is_stopped']}")
+            um['stop_msg_printed'] = True
 
 
 
@@ -71,7 +108,7 @@ def user_JointForces(mbs_data, tsim):
     
     # Règle : Si la voiture roule à plus de 5 m/s MAIS que la roue 
     # tourne à moins de 2 rad/s (elle est quasi figée), on glisse !
-    if v_veh > 5.0 and abs(omega_roue) < 2.0:
+    if v_veh > 5 and abs(omega_roue) < 2.0:
         if not um['warning_printed']:
             print(f"\n⚠ DANGER : Blocage des roues arrière détecté à t = {tsim:.2f}s !")
             um['warning_printed'] = True
@@ -100,9 +137,22 @@ def user_JointForces(mbs_data, tsim):
     # --------------------------------- Simulation : Acceleration ---------------------------------
     # =============================================================================================
     if simulation_type == 'acceleration':
-        # Recuperation des donnée de simulation
         if tsim > 1.0 and mbs_data.process != 2:
-            torque_rear = um['couple_acceleration']
+            torque_rear = pedal(tsim, um['couple_acceleration'])
+
+
+
+    # ============================================================================================
+    # ------------------------------ Simulation : Freinage uniforme ------------------------------
+    # ============================================================================================
+    if simulation_type == "freinage":
+        if tsim > 1.0 and mbs_data.process != 2 and v_veh > 0.5:
+            # Recuperation des donnée de simulation
+            force_freinage = pedal(tsim, um['force_freinage'])
+        
+            if not um['is_stopped']: 
+                torque_front = force_freinage * um['frein_ratio_front']
+                torque_rear  = force_freinage * um['frein_ratio_rear']
 
 
     # =============================================================================================

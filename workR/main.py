@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # =============================================================================
 # 1. PARAMÈTRES DE LA SIMULATION
 # =============================================================================
-simulation = "MRU"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
+simulation = "freinage"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
 vitesse_kmh = {"MRU": 36, "acceleration": 7, "freinage": 70, "dos_d_ane": 60, "virage": 30, "evitement": 60}[simulation]
 
 print(f"--- Démarrage du projet Mazda MX-5 : Mode {simulation} ---")
@@ -46,7 +46,7 @@ um['enable_4ws']                        = False      # Direction 4-roues (False 
 um['ratio_4ws']                         = 0.10       # Ratio direction arrière vs avant (4WS)
 
 # --- Paramètres de Couple et Freinage ---
-um['force_freinage']                    = 0.0        # Force de freinage (N)
+um['force_freinage']                    = -1000.0        # Force de freinage (N)
 um['couple_acceleration']               = 1000.0     # Couple d'accélération réduit (N·m)
 
 # --- Paramètres de Virage ---
@@ -84,8 +84,8 @@ um['frein_ratio_front']                 = 0.60       # Répartition avant freina
 um['frein_ratio_rear']                  = 0.40       # Répartition arrière freinage (%)
 
 # --- Vitesses de Sécurité ---
-um['v_min_started']                     = 5.0        # Vitesse pour confirmer départ (m/s)
-um['v_max_stopped']                     = 2.0        # Vitesse pour confirmer arrêt (m/s)
+um['v_min_started']                     = 1.0        # Vitesse pour confirmer départ (m/s)
+um['v_max_stopped']                     = 0.2        # Vitesse pour confirmer arrêt (m/s)
 
 mbs_data.user_model = um
 
@@ -152,7 +152,7 @@ mbs_data.qd[2] = 0.0         # Tuer le glissement latéral parasite (Y)
 mbs_data.qd[6] = 0.0         # Tuer la rotation parasite (Yaw)
 
 print(f">> Lancement de la simulation ({simulation})...")
-mbs_dirdyn.set_options(dt0=5e-3, tf=20.0, save2file=1)
+mbs_dirdyn.set_options(dt0=5e-3, tf=15.0, save2file=1)
 
 # =============================================================================
 # 5. GESTION DU CRASH-TEST (Anti-arrêt de Python)
