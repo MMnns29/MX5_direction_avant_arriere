@@ -1,0 +1,9 @@
+# Dossiers à ignorer
+userfct/__pycache__/
+.vscode/
+.env/
+resultsR/
+
+# Fichiers Python temporaires
+*.pyc
+*.pyo
