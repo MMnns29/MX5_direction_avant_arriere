@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # =============================================================================
 # 1. PARAMÈTRES DE LA SIMULATION
 # =============================================================================
-simulation = "virage"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
+simulation = "MRU"  # Options: "MRU", "acceleration", "freinage", "dos_d_ane", "virage", "evitement"
 vitesse_kmh = {"MRU": 36, "acceleration": 7, "freinage": 70, "dos_d_ane": 60, "virage": 30, "evitement": 60}[simulation]
 
 print(f"--- Démarrage du projet Mazda MX-5 : Mode {simulation} ---")
@@ -34,7 +34,7 @@ um['FrontSuspension']                   = {'K': 27000.0, 'C': 2200.0, 'C_bar': 1
 um['RearSuspension']                    = {'K': 27000.0, 'C': 1800.0, 'C_bar': 12000.0, 'Z0': 0.43}
 
 # --- Systèmes de Contrôle ---
-um['enable_esp']                        = True       # Active l'ESP (contrôle de stabilité)
+um['enable_esp']                        = False      # Active l'ESP (contrôle de stabilité)
 um['enable_abs']                        = False      # Active l'ABS (antiblocage des roues)
 
 # --- Paramètres de Direction ---
@@ -42,17 +42,15 @@ um['K_steering']                        = 200000.0   # Raideur direction avant (
 um['D_steering']                        = 10000.0    # Amortissement direction avant (N·m·s/rad)
 um['K_steering_AR']                     = 1e7        # Raideur direction arrière (très élevée)
 um['D_steering_AR']                     = 1e4        # Amortissement direction arrière
-um['enable_4ws']                        = True       # Direction 4-roues (False = 2-roues)
+um['enable_4ws']                        = False      # Direction 4-roues (False = 2-roues)
 um['ratio_4ws']                         = 0.10       # Ratio direction arrière vs avant (4WS)
 
 # --- Paramètres de Couple et Freinage ---
-um['torque_rear']                       = 0.0        # Couple moteur roues arrière (N·m)
-um['torque_front']                      = 0.0        # Couple moteur roues avant (N·m)
 um['force_freinage']                    = 0.0        # Force de freinage (N)
-um['couple_acceleration']               = 2800.0     # Couple d'accélération réduit (N·m)
+um['couple_acceleration']               = 1000.0     # Couple d'accélération réduit (N·m)
 
 # --- Paramètres de Virage ---
-um['amplitude_virage']                  = 0.008      # Déplacement de crémaillère en virage (m) - réduit pour limiter le roulis
+um['amplitude_virage']                  = 0.080      # Déplacement de crémaillère en virage (m) - réduit pour limiter le roulis
 um['couple_virage']                     = 0.0        # Couple pour maintenir la vitesse en virage (N·m)
 
 # --- Paramètres d'Évitement (Pure Pursuit) ---
@@ -154,7 +152,7 @@ mbs_data.qd[2] = 0.0         # Tuer le glissement latéral parasite (Y)
 mbs_data.qd[6] = 0.0         # Tuer la rotation parasite (Yaw)
 
 print(f">> Lancement de la simulation ({simulation})...")
-mbs_dirdyn.set_options(dt0=1e-3, tf=6.0, save2file=1)
+mbs_dirdyn.set_options(dt0=5e-3, tf=20.0, save2file=1)
 
 # =============================================================================
 # 5. GESTION DU CRASH-TEST (Anti-arrêt de Python)

@@ -7,7 +7,7 @@ def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
     """
     Cette fonction calcule les forces et moments extérieurs appliqués aux roues du véhicule en fonction de la cinématique du contact sol-roue et des paramètres du pneu.
     Les étapes principales sont les suivantes :
-    PxF : Position du point d'application de la force (en coordonnées globales)
+    PxF : Position du point d'application de la force (en coordonnées globales) 
     RxF : Orientation du point d'application de la force (matrice de rotation)
     VxF : Vitesse du point d'application de la force
     OMxF : Vitesse angulaire du point d'application de la force
@@ -59,6 +59,17 @@ def user_ExtForces(PxF, RxF, VxF, OMxF, AxF, OMPxF, mbs_data, tsim, ixF):
 
                 Fx, Fy, Fz = F_inertial[1], F_inertial[2], F_inertial[3]
                 Mx, My, Mz = M_inertial[1], M_inertial[2], M_inertial[3]
+                
+                if mbs_data.user_model['simulation'] == 'dos_d_ane':
+                    h = 1.0  # hauteur du dos d'âne en m
+                    L = 5.0   # longueur en m
+                    bump_start = 5 # distance en m
+                    if (bump_start + L/2) > PxF[1] > (bump_start - L/2) :
+                        z = h * np.cos(((PxF[1]-bump_start)/L)*np.pi)
+                        pen += z
+
+                if pen > 0 :
+                    Fz += K_tire * pen       
             
         elif mbs_data.process == 2: # Équilibre (Tassement)
             if pen > 0:
